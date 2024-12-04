@@ -1,15 +1,17 @@
 const express = require('express');
-const app = express();
 const bodyParser = require('body-parser');
+const cron = require('node-cron'); // Import node-cron for scheduling tasks
 
+const app = express();
 const PORT = 3000;
 
 app.use(bodyParser.json()); // Parse incoming JSON requests
 
+let expenses = []; // Storage for expenses
+
 app.get('/', (req, res) => {
     res.json({ message: 'Welcome to the Personal Expense Tracker API!' });
 });
-let expenses = []; // Storage for expenses
 
 app.post('/expenses', (req, res) => {
     const { category, amount, date } = req.body;
@@ -52,6 +54,7 @@ app.get('/expenses', (req, res) => {
 
     res.json({ status: 'success', data: filteredExpenses });
 });
+
 app.get('/expenses/analysis', (req, res) => {
     const analysis = {}; // Object to store category-wise spending
 
@@ -64,6 +67,21 @@ app.get('/expenses/analysis', (req, res) => {
     });
 
     res.json({ status: 'success', data: analysis }); // Send the result
+});
+
+// CRON job to generate weekly summary every 30 seconds for testing
+cron.schedule('*/30 * * * * *', () => {
+    console.log('Generating quick expense summary...');
+
+    const weeklyReport = {
+        totalExpenses: expenses.reduce((sum, exp) => sum + exp.amount, 0),
+        byCategory: expenses.reduce((acc, exp) => {
+            acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+            return acc;
+        }, {})
+    };
+
+    console.log('Quick 30s Report:', weeklyReport);
 });
 
 app.listen(PORT, () => {
